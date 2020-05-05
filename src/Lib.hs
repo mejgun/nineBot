@@ -8,6 +8,7 @@ where
 import qualified Control.Exception             as E
 import qualified Data.ByteString               as B
 import qualified Data.ByteString.Lazy          as BL
+import qualified Data.Text                     as T
 import qualified Network.HTTP.Conduit          as H
 
 data Err = UnknownSite
@@ -26,7 +27,7 @@ type Result = Either Err Resp
 
 go :: IO ()
 go = do
-  a <- getGag "https://m.9gag.com/"
+  a <- getGag $ fixScheme "m.9gag.com/"
   print a
 
 getGag :: String -> IO Result
@@ -36,13 +37,12 @@ getGag s = do
   case r of
     Left  e   -> return $ Left $ UrlErr e
     Right req -> do
-      let h    = rename $ H.host req
-      let reqN = req { H.host = h }
-      if h `elem` ["9gag.com", "m.vk.com"]
+      let reqN = changeHost req
+      if isValidHost reqN
         then do
           res <- get9 reqN
           case res of
-            Right body -> return $ Right $ parseSite h body
+            Right body -> return $ Right $ parseSite reqN body
             Left  e    -> return $ Left $ NetErr e
         else return $ Left UnknownSite
 
@@ -56,14 +56,27 @@ get9 request = do
 parseURL :: String -> IO (Either H.HttpException H.Request)
 parseURL u = fmap (Right) (H.parseRequest u) `E.catch` (return . Left)
 
+fixScheme :: String -> String
+fixScheme s =
+  let ts = T.replace "http://" "https://" $ T.pack s
+  in  T.unpack
+        $ if T.isPrefixOf "https://" ts then ts else T.concat ["https://", ts]
+
+changeHost :: H.Request -> H.Request
+changeHost r = let h = rename (H.host r) in r { H.host = h }
+
+isValidHost :: H.Request -> Bool
+isValidHost r = H.host r `elem` ["9gag.com", "m.vk.com"]
+
 rename :: B.ByteString -> B.ByteString
 rename "m.9gag.com" = "9gag.com"
 rename "vk.com"     = "m.vk.com"
 rename s            = s
 
-parseSite :: B.ByteString -> BL.ByteString -> Resp
-parseSite "9gag.com" s = parse9gag s
-parseSite _          _ = error "cannot match"
+parseSite :: H.Request -> BL.ByteString -> Resp
+parseSite r b = case H.host r of
+  "9gag.com" -> parse9gag b
+  _          -> error "cannot match"
 
 parse9gag :: BL.ByteString -> Resp
 parse9gag _ = Resp { video = [], photo = [], caption = "ok" }
