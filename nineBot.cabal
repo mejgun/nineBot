@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 99d46abf7075742ec44189709363f989e549f4b3b220a22b04ba8446ec1fa80d
+-- hash: 2c1aa3b45952b3a3128fe2ff252cc638621ae17890af0f3fc71f48f83342750f
 
 name:           nineBot
 version:        0.1.0.0
@@ -34,6 +34,8 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , bytestring
+    , http-conduit
   default-language: Haskell2010
 
 executable nineBot-exe
@@ -45,6 +47,8 @@ executable nineBot-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
+    , http-conduit
     , nineBot
   default-language: Haskell2010
 
@@ -58,5 +62,7 @@ test-suite nineBot-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
+    , http-conduit
     , nineBot
   default-language: Haskell2010
