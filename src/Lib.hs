@@ -1,38 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
-  ( go
+  ( getGag
   )
 where
+
+import           NineGag
+import           Types
 
 import qualified Control.Exception             as E
 import qualified Data.ByteString               as B
 import qualified Data.ByteString.Lazy          as BL
 import qualified Data.Text                     as T
 import qualified Network.HTTP.Conduit          as H
+import qualified Text.XML.Cursor               as X
+import           Text.HTML.DOM                  ( parseLBS )
 
-data Err = UnknownSite
-    | NetErr H.HttpException
-    | UrlErr H.HttpException
-    deriving Show
 
-data Resp = Resp
-    { video   :: [String]
-    , photo   :: [String]
-    , caption :: String
-    }
-    deriving Show
-
-type Result = Either Err Resp
-
-go :: IO ()
-go = do
-  a <- getGag $ fixScheme "m.9gag.com/"
-  print a
 
 getGag :: String -> IO Result
 getGag s = do
-  r <- parseURL s
+  r <- parseURL $ fixScheme s
   print r
   case r of
     Left  e   -> return $ Left $ UrlErr e
@@ -63,20 +51,21 @@ fixScheme s =
         $ if T.isPrefixOf "https://" ts then ts else T.concat ["https://", ts]
 
 changeHost :: H.Request -> H.Request
-changeHost r = let h = rename (H.host r) in r { H.host = h }
+changeHost r =
+  let h = renameHost (H.host r)
+  in  r { H.host = h, H.requestHeaders = [("User-Agent", "Mozilla")] }
+
+renameHost :: B.ByteString -> B.ByteString
+renameHost "m.9gag.com" = "9gag.com"
+renameHost "vk.com"     = "m.vk.com"
+renameHost s            = s
 
 isValidHost :: H.Request -> Bool
 isValidHost r = H.host r `elem` ["9gag.com", "m.vk.com"]
 
-rename :: B.ByteString -> B.ByteString
-rename "m.9gag.com" = "9gag.com"
-rename "vk.com"     = "m.vk.com"
-rename s            = s
-
 parseSite :: H.Request -> BL.ByteString -> Resp
 parseSite r b = case H.host r of
-  "9gag.com" -> parse9gag b
+  "9gag.com" -> parse9gag $ p b
   _          -> error "cannot match"
+  where p = X.fromDocument . parseLBS
 
-parse9gag :: BL.ByteString -> Resp
-parse9gag _ = Resp { video = [], photo = [], caption = "ok" }

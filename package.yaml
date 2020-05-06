@@ -22,8 +22,11 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - http-conduit
+- html-conduit
+- xml-conduit
 - bytestring
 - text
+- aeson
 
 library:
   source-dirs: src
