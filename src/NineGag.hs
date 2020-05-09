@@ -11,7 +11,6 @@ import           Data.Maybe                     ( fromMaybe )
 import qualified Text.XML.Cursor               as X
 import qualified Data.Text                     as T
 import qualified Data.Aeson                    as A
--- import qualified Data.ByteString.Lazy          as L
 import qualified Data.Text.Encoding            as E
 
 parse9gag :: X.Cursor -> Resp

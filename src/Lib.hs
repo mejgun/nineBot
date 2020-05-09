@@ -6,6 +6,7 @@ module Lib
 where
 
 import           NineGag
+import           VK
 import           Types
 
 import qualified Control.Exception             as E
@@ -66,6 +67,9 @@ isValidHost r = H.host r `elem` ["9gag.com", "m.vk.com"]
 parseSite :: H.Request -> BL.ByteString -> Resp
 parseSite r b = case H.host r of
   "9gag.com" -> parse9gag $ p b
+  "m.vk.com" -> parsevk $ p b
   _          -> error "cannot match"
-  where p = X.fromDocument . parseLBS
+ where
+  p :: BL.ByteString -> X.Cursor
+  p = X.fromDocument . parseLBS
 

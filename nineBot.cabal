@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 748afbbcc27ed98d010a43bfa712aecb26938f4c1437e3abfdb31236da76bc6d
+-- hash: 3d919444812a11c5ace169db31fc1179c494f0bc414c45f77a18a52656c13920
 
 name:           nineBot
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Lib
       NineGag
       Types
+      VK
   other-modules:
       Paths_nineBot
   hs-source-dirs:
