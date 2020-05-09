@@ -1,6 +1,6 @@
 module Types where
 
-import qualified Network.HTTP.Conduit          as H
+import qualified Network.HTTP.Conduit as H
 
 data Err = UnknownSite
     | NetErr H.HttpException
@@ -11,7 +11,7 @@ data Resp = Resp
     { video   :: [String]
     , photo   :: [String]
     , caption :: String
-    , url :: String
+    , url     :: String
     }
     deriving Show
 

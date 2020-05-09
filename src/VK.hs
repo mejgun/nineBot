@@ -1,18 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module VK
-  ( parsevk
+  ( parseVK
   )
 where
 
 import           Types
 
-import qualified Text.XML.Cursor               as X
 import qualified Data.Text                     as T
---import qualified Data.Text.Encoding            as E
+import qualified Text.XML.Cursor               as X
 
-parsevk :: X.Cursor -> Resp
-parsevk c =
+parseVK :: X.Cursor -> Resp
+parseVK c =
   Resp { video = [], photo = getImages c, caption = getTitle c, url = getURL c }
 
 getURL :: X.Cursor -> String
@@ -29,9 +28,7 @@ getTitle c =
   T.unpack
     $     T.concat
     $     c
-    X.$// X.element "div"
-    X.>=> X.attributeIs "class" "wi_body"
-    X.>=> X.element "div"
+    X.$// getPostBody
     X.>=> X.child
     X.>=> X.attributeIs "class" "pi_text"
     X.>=> X.child
@@ -41,11 +38,21 @@ getImages :: X.Cursor -> [String]
 getImages c =
   map (T.unpack . fst . T.breakOn "|")
     $     c
-    X.$// X.element "div"
-    X.>=> (\cs ->
-            (X.attributeIs "class" "wi_body" cs)
-              ++ (X.attributeIs "class" "wi_body wi_no_text" cs)
-          )
-    X.&// X.element "div"
-    X.>=> X.attributeIs "class" "thumb_map_img thumb_map_img_as_div"
+    X.$// getPostBody
+    X.&// X.attributeIs "class" "thumb_map_img thumb_map_img_as_div"
     X.>=> X.attribute "data-src_big"
+
+-- getGIFs :: X.Cursor -> [String]
+-- getGIFs c =
+--   map (\t -> T.unpack $ T.concat ["https://vk.com", t])
+--     $     c
+--     X.$// getPostBody
+--     X.&// X.attributeIs "class" "medias_thumb"
+--     X.>=> X.attribute "href"
+
+getPostBody :: X.Axis
+getPostBody c =
+  (X.attributeIs "class" "wi_body" c)
+    ++ (X.attributeIs "class" "wi_body wi_no_text" c)
+
+

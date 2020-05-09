@@ -6,16 +6,16 @@ module Lib
 where
 
 import           NineGag
-import           VK
 import           Types
+import           VK
 
 import qualified Control.Exception             as E
 import qualified Data.ByteString               as B
 import qualified Data.ByteString.Lazy          as BL
 import qualified Data.Text                     as T
 import qualified Network.HTTP.Conduit          as H
-import qualified Text.XML.Cursor               as X
 import           Text.HTML.DOM                  ( parseLBS )
+import qualified Text.XML.Cursor               as X
 
 
 
@@ -67,7 +67,7 @@ isValidHost r = H.host r `elem` ["9gag.com", "m.vk.com"]
 parseSite :: H.Request -> BL.ByteString -> Resp
 parseSite r b = case H.host r of
   "9gag.com" -> parse9gag $ p b
-  "m.vk.com" -> parsevk $ p b
+  "m.vk.com" -> parseVK $ p b
   _          -> error "cannot match"
  where
   p :: BL.ByteString -> X.Cursor

@@ -7,11 +7,11 @@ where
 
 import           Types
 
-import           Data.Maybe                     ( fromMaybe )
-import qualified Text.XML.Cursor               as X
-import qualified Data.Text                     as T
 import qualified Data.Aeson                    as A
+import           Data.Maybe                     ( fromMaybe )
+import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as E
+import qualified Text.XML.Cursor               as X
 
 parse9gag :: X.Cursor -> Resp
 parse9gag c = Resp { video   = getVideo j
