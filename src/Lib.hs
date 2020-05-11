@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
-  ( getGag
+  ( getPost
   )
 where
 
@@ -19,8 +19,8 @@ import qualified Text.XML.Cursor               as X
 
 
 
-getGag :: String -> IO Result
-getGag s = do
+getPost :: String -> IO Result
+getPost s = do
   r <- parseURL $ fixScheme s
   print r
   case r of

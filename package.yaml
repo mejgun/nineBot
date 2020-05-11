@@ -27,6 +27,8 @@ dependencies:
 - bytestring
 - text
 - aeson
+- haskell-tdlib
+
 
 library:
   source-dirs: src

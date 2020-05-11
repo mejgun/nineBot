@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3d919444812a11c5ace169db31fc1179c494f0bc414c45f77a18a52656c13920
+-- hash: 84d738013c3a8f686c4d91c061163542720094c215a829539f707fd6808b5b77
 
 name:           nineBot
 version:        0.1.0.0
@@ -39,6 +39,7 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
+    , haskell-tdlib
     , html-conduit
     , http-conduit
     , text
@@ -56,6 +57,7 @@ executable nineBot-exe
       aeson
     , base >=4.7 && <5
     , bytestring
+    , haskell-tdlib
     , html-conduit
     , http-conduit
     , nineBot
@@ -75,6 +77,7 @@ test-suite nineBot-test
       aeson
     , base >=4.7 && <5
     , bytestring
+    , haskell-tdlib
     , html-conduit
     , http-conduit
     , nineBot
