@@ -26,6 +26,5 @@ logFileName = "bot_log.txt"
 mainLoop :: Chan String -> IO ()
 mainLoop ch = do
   text <- readChan ch
-  appendFile logFileName text
-  appendFile logFileName "\n\n"
+  appendFile logFileName $ text ++ "\n\n"
   mainLoop ch

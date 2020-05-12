@@ -1,25 +1,39 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main
   ( main
   )
 where
 
 import           Lib                            ( getPost )
--- import           Types                          ( caption )
 import           Logger                         ( Logger
                                                 , startLogger
                                                 )
-
+import           Types
+import qualified API.TextEntityType            as TET
+import qualified API.InputFile                 as IF
+import qualified API.TextEntity                as TE
 import           API.AuthorizationState
+import           API.ConnectionState
+import qualified API.FormattedText             as FT
 import           API.Functions.CheckAuthenticationBotToken
 import           API.Functions.CheckDatabaseEncryptionKey
---import           API.Functions.SendMessageAlbum
-import           API.ConnectionState
+import qualified API.Functions.ResendMessages  as RM
+import qualified API.Functions.SendMessage     as SM
+import qualified API.Functions.SendMessageAlbum
+                                               as SMA
 import           API.Functions.SetLogVerbosityLevel
 import           API.Functions.SetTdlibParameters
 import           API.GeneralResult
 import qualified API.Message                   as M
+import           API.MessageContent
+import qualified API.InputMessageContent       as IMC
 import qualified API.Update                    as U
-import           Data.Maybe                     ( fromMaybe )
+import           Data.Maybe                     ( fromMaybe
+                                                , fromJust
+                                                , isNothing
+                                                , isJust
+                                                )
 import           Defaults
 import           TDLib
 
@@ -37,9 +51,6 @@ data State = State
 
 main :: IO ()
 main = do
-  --a <- getGag "m.9gag.com/gag/agAy16W"
-  a <- getPost "vk.com/wall-52537634_1543772"
-  print a
   logToFile <- startLogger
   client    <- create
   send client SetLogVerbosityLevel { new_verbosity_level = Just 2 }
@@ -86,11 +97,45 @@ handleResult (Update (U.UpdateAuthorizationState { U.authorization_state = Just 
   = handleAuthState c s >> return st
 handleResult (Update (U.UpdateConnectionState { U.state = Just conSt })) c st _
   = handleConnState c conSt st
-handleResult (Update (U.UpdateNewMessage { U.message = Just msg })) _ st l = do
-  l $ show msg
-  return st { incomingMessages = msg : incomingMessages st }
-handleResult _ _ st _ = return st
+handleResult (Update (U.UpdateNewMessage { U.message = Just msg })) _ st l
+  | M.chat_id msg == M.sender_user_id msg = l (show msg)
+  >> return st { incomingMessages = msg : incomingMessages st }
+  | otherwise = return st
+handleResult (Update e@(U.UpdateMessageSendFailed { U.message = Just msg })) _ st l
+  = l (show e) >> return st { failedMessages = msg : failedMessages st }
+handleResult _ c st l
+  | isNothing (currentExtra st) && not (null (failedMessages st)) && online st
+  = do
+    let msg = head $ failedMessages st
+    extra <- sendWExtra
+      c
+      RM.ResendMessages { RM.chat_id     = M.chat_id msg
+                        , RM.message_ids = Just [fromMaybe 0 (M._id msg)]
+                        }
+    return st { failedMessages = tail (failedMessages st)
+              , currentExtra   = Just extra
+              }
+  | isNothing (currentExtra st) && not (null (incomingMessages st)) && online st
+  = do
+    let msg = head $ incomingMessages st
+    newSt <-
+      if (M.chat_id msg == M.sender_user_id msg) && isJust (M.chat_id msg)
+        then do
+          let lnk = fromMaybe "fail" (getMessageText msg)
+          post <- getPost lnk
+          sendReply c st post (fromJust (M.chat_id msg)) l
+        else return st
+    return newSt { incomingMessages = tail (incomingMessages st) }
+  | otherwise
+  = return st
 
+getMessageText :: M.Message -> Maybe String
+getMessageText m = do
+  case M.content m of
+    Just MessageText { _text = t } -> case t of
+      Just FT.FormattedText { FT.text = Just txt } -> Just txt
+      _ -> Nothing
+    _ -> Nothing
 
 emptyState :: State
 emptyState = State { currentExtra     = Nothing
@@ -99,3 +144,98 @@ emptyState = State { currentExtra     = Nothing
                    , incomingMessages = []
                    , online           = False
                    }
+
+sendReply :: Client -> State -> Types.Result -> Int -> Logger -> IO State
+sendReply c st res chat l = do
+  extra <- case res of
+    Left UnknownSite -> sendWExtra c $ sendTextMsg chat "unknown site"
+    Left (NetErr e)  -> do
+      l $ show e
+      sendWExtra c $ sendTextMsg chat "some error. try again later"
+    Left (UrlErr e) -> do
+      l $ show e
+      sendWExtra c $ sendTextMsg chat "broken link"
+    Right resp -> sendWExtra c $ sendAlbumMsgs chat resp
+
+  return $ st { currentExtra = Just extra }
+
+
+sendAlbumMsgs :: Int -> Types.Resp -> SMA.SendMessageAlbum
+sendAlbumMsgs cID resp = do
+  SMA.SendMessageAlbum { SMA.chat_id                = Just cID
+                       , SMA.reply_to_message_id    = Nothing
+                       , SMA.options                = Nothing
+                       , SMA.input_message_contents = Just reduceAddLink
+                       }
+ where
+  reduceAddLink :: [IMC.InputMessageContent]
+  reduceAddLink =
+    let c = take 10 content
+    in
+      if null c
+        then c
+        else
+          let
+            (h : t) = c
+            newH    = h
+              { IMC.caption = Just FT.FormattedText
+                { FT.text     = Just ("link " ++ take 200 (Types.caption resp))
+                , FT.entities = Just
+                  [ TE.TextEntity
+                      { TE._type   =
+                        Just
+                          (TET.TextEntityTypeTextUrl
+                            { TET.url = Just (Types.url resp)
+                            }
+                          )
+                      , TE._length = Just 4
+                      , TE.offset  = Just 0
+                      }
+                  ]
+                }
+              }
+          in
+            newH : t
+
+
+
+  content :: [IMC.InputMessageContent]
+  content = (map v (Types.video resp)) ++ (map p (Types.photo resp))
+  v :: String -> IMC.InputMessageContent
+  v s = IMC.InputMessageVideo
+    { IMC.ttl                    = Nothing
+    , IMC.caption                = Nothing
+    , IMC.supports_streaming     = Nothing
+    , IMC.height                 = Nothing
+    , IMC.width                  = Nothing
+    , IMC.duration               = Nothing
+    , IMC.added_sticker_file_ids = Nothing
+    , IMC.thumbnail              = Nothing
+    , IMC.video                  = Just IF.InputFileRemote { IF._id = Just s }
+    }
+  p :: String -> IMC.InputMessageContent
+  p s = IMC.InputMessagePhoto
+    { IMC.ttl                    = Nothing
+    , IMC.caption                = Nothing
+    , IMC.height                 = Nothing
+    , IMC.width                  = Nothing
+    , IMC.added_sticker_file_ids = Nothing
+    , IMC.thumbnail              = Nothing
+    , IMC.photo                  = Just IF.InputFileRemote { IF._id = Just s }
+    }
+
+sendTextMsg :: Int -> String -> SM.SendMessage
+sendTextMsg cID msg = SM.SendMessage
+  { SM.chat_id               = Just cID
+  , SM.reply_to_message_id   = Nothing
+  , SM.reply_markup          = Nothing
+  , SM.options               = Nothing
+  , SM.input_message_content = Just IMC.InputMessageText
+                                 { IMC.clear_draft = Nothing
+                                 , IMC.disable_web_page_preview = Nothing
+                                 , IMC.text = Just FT.FormattedText
+                                                { FT.text     = Just msg
+                                                , FT.entities = Nothing
+                                                }
+                                 }
+  }
