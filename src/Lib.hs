@@ -17,8 +17,6 @@ import qualified Network.HTTP.Conduit          as H
 import           Text.HTML.DOM                  ( parseLBS )
 import qualified Text.XML.Cursor               as X
 
-
-
 getPost :: String -> IO Result
 getPost s = do
   r <- parseURL $ fixLink s

@@ -28,11 +28,10 @@ import           Data.Maybe                     ( fromMaybe
                                                 , isJust
                                                 , isNothing
                                                 )
+
 import           Defaults
-import           Lib                            ( getPost )
-import           Logger                         ( Logger
-                                                , startLogger
-                                                )
+import           Lib
+import           Logger
 import           TDLib
 import           Types
 

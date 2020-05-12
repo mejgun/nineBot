@@ -5,10 +5,10 @@ module VK
   )
 where
 
-import           Types
-
 import qualified Data.Text                     as T
 import qualified Text.XML.Cursor               as X
+
+import           Types
 
 parseVK :: X.Cursor -> Resp
 parseVK c =

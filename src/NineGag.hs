@@ -5,13 +5,13 @@ module NineGag
   )
 where
 
-import           Types
-
 import qualified Data.Aeson                    as A
 import           Data.Maybe                     ( fromMaybe )
 import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as E
 import qualified Text.XML.Cursor               as X
+
+import           Types
 
 parse9gag :: X.Cursor -> Resp
 parse9gag c = Resp { video   = v

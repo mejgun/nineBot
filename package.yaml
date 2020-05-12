@@ -28,8 +28,6 @@ dependencies:
 - text
 - aeson
 - haskell-tdlib
-- html-entities
-
 
 library:
   source-dirs: src

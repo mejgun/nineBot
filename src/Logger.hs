@@ -17,7 +17,7 @@ startLogger = do
   _  <- forkIO $ mainLoop ch
   return $ logToFile ch
 
-logToFile :: Chan String -> String -> IO ()
+logToFile :: Chan String -> Logger
 logToFile ch s = writeChan ch s
 
 logFileName :: FilePath
