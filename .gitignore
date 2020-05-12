@@ -1,3 +1,6 @@
 .stack-work/
 /build/
+/lib/
+*.txt
+/tdlib_*
 *~

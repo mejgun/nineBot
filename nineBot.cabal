@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 84d738013c3a8f686c4d91c061163542720094c215a829539f707fd6808b5b77
+-- hash: 7e186a73b39585027e44373fb8436197a3b0d9b51ebc7f0c903cf153e23a5407
 
 name:           nineBot
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Logger
       NineGag
       Types
       VK
