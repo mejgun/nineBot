@@ -5,14 +5,6 @@ module Main
   )
 where
 
-import           Lib                            ( getPost )
-import           Logger                         ( Logger
-                                                , startLogger
-                                                )
-import           Types
-import qualified API.TextEntityType            as TET
-import qualified API.InputFile                 as IF
-import qualified API.TextEntity                as TE
 import           API.AuthorizationState
 import           API.ConnectionState
 import qualified API.FormattedText             as FT
@@ -25,17 +17,24 @@ import qualified API.Functions.SendMessageAlbum
 import           API.Functions.SetLogVerbosityLevel
 import           API.Functions.SetTdlibParameters
 import           API.GeneralResult
+import qualified API.InputFile                 as IF
+import qualified API.InputMessageContent       as IMC
 import qualified API.Message                   as M
 import           API.MessageContent
-import qualified API.InputMessageContent       as IMC
+import qualified API.TextEntity                as TE
+import qualified API.TextEntityType            as TET
 import qualified API.Update                    as U
 import           Data.Maybe                     ( fromMaybe
-                                                , fromJust
-                                                , isNothing
                                                 , isJust
+                                                , isNothing
                                                 )
 import           Defaults
+import           Lib                            ( getPost )
+import           Logger                         ( Logger
+                                                , startLogger
+                                                )
 import           TDLib
+import           Types
 
 
 
@@ -123,7 +122,7 @@ handleResult _ c st l
         then do
           let lnk = fromMaybe "fail" (getMessageText msg)
           post <- getPost lnk
-          sendReply c st post (fromJust (M.chat_id msg)) l
+          sendReply c st post msg l
         else return st
     return newSt { incomingMessages = tail (incomingMessages st) }
   | otherwise
@@ -145,25 +144,28 @@ emptyState = State { currentExtra     = Nothing
                    , online           = False
                    }
 
-sendReply :: Client -> State -> Types.Result -> Int -> Logger -> IO State
-sendReply c st res chat l = do
+sendReply :: Client -> State -> Types.Result -> M.Message -> Logger -> IO State
+sendReply c st res msg l = do
   extra <- case res of
-    Left UnknownSite -> sendWExtra c $ sendTextMsg chat "unknown site"
+    Left UnknownSite -> sendWExtra c $ sendTextMsg chat replyTo "unknown site"
     Left (NetErr e)  -> do
       l $ show e
-      sendWExtra c $ sendTextMsg chat "some error. try again later"
+      sendWExtra c $ sendTextMsg chat replyTo "some error. try again later"
     Left (UrlErr e) -> do
       l $ show e
-      sendWExtra c $ sendTextMsg chat "broken link"
-    Right resp -> sendWExtra c $ sendAlbumMsgs chat resp
-
+      sendWExtra c $ sendTextMsg chat replyTo "broken link"
+    Right resp -> if null (Types.photo resp) && null (Types.video resp)
+      then sendWExtra c $ sendTextMsg chat replyTo "no media found"
+      else sendWExtra c $ sendAlbumMsgs chat replyTo resp
   return $ st { currentExtra = Just extra }
+ where
+  chat    = M.chat_id msg
+  replyTo = M._id msg
 
-
-sendAlbumMsgs :: Int -> Types.Resp -> SMA.SendMessageAlbum
-sendAlbumMsgs cID resp = do
-  SMA.SendMessageAlbum { SMA.chat_id                = Just cID
-                       , SMA.reply_to_message_id    = Nothing
+sendAlbumMsgs :: Maybe Int -> Maybe Int -> Types.Resp -> SMA.SendMessageAlbum
+sendAlbumMsgs cID rID resp = do
+  SMA.SendMessageAlbum { SMA.chat_id                = cID
+                       , SMA.reply_to_message_id    = rID
                        , SMA.options                = Nothing
                        , SMA.input_message_contents = Just reduceAddLink
                        }
@@ -171,34 +173,26 @@ sendAlbumMsgs cID resp = do
   reduceAddLink :: [IMC.InputMessageContent]
   reduceAddLink =
     let c = take 10 content
-    in
-      if null c
-        then c
-        else
-          let
-            (h : t) = c
-            newH    = h
-              { IMC.caption = Just FT.FormattedText
-                { FT.text     = Just ("link " ++ take 200 (Types.caption resp))
-                , FT.entities = Just
-                  [ TE.TextEntity
-                      { TE._type   =
-                        Just
-                          (TET.TextEntityTypeTextUrl
-                            { TET.url = Just (Types.url resp)
-                            }
-                          )
-                      , TE._length = Just 4
-                      , TE.offset  = Just 0
-                      }
-                  ]
-                }
-              }
-          in
-            newH : t
-
-
-
+    in  if null c
+          then c
+          else
+            let (h : t) = c
+                newH    = addLinkNCaption h
+            in  newH : t
+  addLinkNCaption :: IMC.InputMessageContent -> IMC.InputMessageContent
+  addLinkNCaption imc = imc
+    { IMC.caption = Just FT.FormattedText
+      { FT.text     = Just ("link " ++ take 200 (Types.caption resp))
+      , FT.entities = Just
+        [ TE.TextEntity
+            { TE._type   = Just
+              (TET.TextEntityTypeTextUrl { TET.url = Just (Types.url resp) })
+            , TE._length = Just 4
+            , TE.offset  = Just 0
+            }
+        ]
+      }
+    }
   content :: [IMC.InputMessageContent]
   content = (map v (Types.video resp)) ++ (map p (Types.photo resp))
   v :: String -> IMC.InputMessageContent
@@ -224,10 +218,10 @@ sendAlbumMsgs cID resp = do
     , IMC.photo                  = Just IF.InputFileRemote { IF._id = Just s }
     }
 
-sendTextMsg :: Int -> String -> SM.SendMessage
-sendTextMsg cID msg = SM.SendMessage
-  { SM.chat_id               = Just cID
-  , SM.reply_to_message_id   = Nothing
+sendTextMsg :: Maybe Int -> Maybe Int -> String -> SM.SendMessage
+sendTextMsg cID rID msg = SM.SendMessage
+  { SM.chat_id               = cID
+  , SM.reply_to_message_id   = rID
   , SM.reply_markup          = Nothing
   , SM.options               = Nothing
   , SM.input_message_content = Just IMC.InputMessageText

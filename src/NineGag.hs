@@ -14,12 +14,15 @@ import qualified Data.Text.Encoding            as E
 import qualified Text.XML.Cursor               as X
 
 parse9gag :: X.Cursor -> Resp
-parse9gag c = Resp { video   = getVideo j
-                   , photo   = getImage j
+parse9gag c = Resp { video   = v
+                   , photo   = if null v then p else []
                    , caption = getTitle j
                    , url     = getURL j
                    }
-  where j = getJson c
+ where
+  j = getJson c
+  v = getVideo j
+  p = getImage j
 
 getTitle :: T.Text -> String
 getTitle json = let Title q = fromMaybe (Title "title parse failed") t in q
