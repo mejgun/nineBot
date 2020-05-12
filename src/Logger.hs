@@ -6,8 +6,8 @@ module Logger
   )
 where
 
-import           Control.Concurrent.Chan
 import           Control.Concurrent             ( forkIO )
+import           Control.Concurrent.Chan
 
 type Logger = String -> IO ()
 

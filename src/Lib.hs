@@ -52,8 +52,6 @@ fixLink s =
   in  T.unpack
         $ if T.isPrefixOf "https://" ts then ts else T.concat ["https://", ts]
 
-
-
 changeHost :: H.Request -> H.Request
 changeHost r =
   let h = renameHost (H.host r)

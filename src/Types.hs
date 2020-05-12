@@ -1,6 +1,6 @@
 module Types where
 
-import qualified Network.HTTP.Conduit as H
+import qualified Network.HTTP.Conduit          as H
 
 data Err = UnknownSite
     | NetErr H.HttpException

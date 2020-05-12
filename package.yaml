@@ -28,6 +28,7 @@ dependencies:
 - text
 - aeson
 - haskell-tdlib
+- html-entities
 
 
 library:
