@@ -21,7 +21,7 @@ import qualified Text.XML.Cursor               as X
 
 getPost :: String -> IO Result
 getPost s = do
-  r <- parseURL $ fixScheme s
+  r <- parseURL $ fixLink s
   print r
   case r of
     Left  e   -> return $ Left $ UrlErr e
@@ -45,11 +45,14 @@ get9 request = do
 parseURL :: String -> IO (Either H.HttpException H.Request)
 parseURL u = fmap (Right) (H.parseRequest u) `E.catch` (return . Left)
 
-fixScheme :: String -> String
-fixScheme s =
-  let ts = T.replace "http://" "https://" $ T.pack s
+fixLink :: String -> String
+fixLink s =
+  let t  = T.replace "http://" "https://" . T.strip $ T.pack s
+      ts = if length (T.words t) /= 1 then "fail" else t
   in  T.unpack
         $ if T.isPrefixOf "https://" ts then ts else T.concat ["https://", ts]
+
+
 
 changeHost :: H.Request -> H.Request
 changeHost r =

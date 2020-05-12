@@ -61,7 +61,7 @@ mainLoop c st l = do
   case r of
     Nothing                          -> mainLoop c st l
     Just (ResultWithExtra res extra) -> do
-      print st
+      -- print st
       print res
       newSt <- case extra of
         Just xt -> handleExtra xt res st l
@@ -104,27 +104,9 @@ handleResult (Update e@(U.UpdateMessageSendFailed { U.message = Just msg })) _ s
   = l (show e) >> return st { failedMessages = msg : failedMessages st }
 handleResult _ c st l
   | isNothing (currentExtra st) && not (null (failedMessages st)) && online st
-  = do
-    let msg = head $ failedMessages st
-    extra <- sendWExtra
-      c
-      RM.ResendMessages { RM.chat_id     = M.chat_id msg
-                        , RM.message_ids = Just [fromMaybe 0 (M._id msg)]
-                        }
-    return st { failedMessages = tail (failedMessages st)
-              , currentExtra   = Just extra
-              }
+  = resendFirstFailedMessage c st
   | isNothing (currentExtra st) && not (null (incomingMessages st)) && online st
-  = do
-    let msg = head $ incomingMessages st
-    newSt <-
-      if (M.chat_id msg == M.sender_user_id msg) && isJust (M.chat_id msg)
-        then do
-          let lnk = fromMaybe "fail" (getMessageText msg)
-          post <- getPost lnk
-          sendReply c st post msg l
-        else return st
-    return newSt { incomingMessages = tail (incomingMessages st) }
+  = answerToFirstReceivedMessage c st l
   | otherwise
   = return st
 
@@ -143,6 +125,29 @@ emptyState = State { currentExtra     = Nothing
                    , incomingMessages = []
                    , online           = False
                    }
+
+resendFirstFailedMessage :: Client -> State -> IO State
+resendFirstFailedMessage c st = do
+  let msg = head $ failedMessages st
+  extra <- sendWExtra
+    c
+    RM.ResendMessages { RM.chat_id     = M.chat_id msg
+                      , RM.message_ids = Just [fromMaybe 0 (M._id msg)]
+                      }
+  return st { failedMessages = tail (failedMessages st)
+            , currentExtra   = Just extra
+            }
+
+answerToFirstReceivedMessage :: Client -> State -> Logger -> IO State
+answerToFirstReceivedMessage c st l = do
+  let msg = head $ incomingMessages st
+  newSt <- if (M.chat_id msg == M.sender_user_id msg) && isJust (M.chat_id msg)
+    then do
+      let lnk = fromMaybe "fail" (getMessageText msg)
+      post <- getPost lnk
+      sendReply c st post msg l
+    else return st
+  return newSt { incomingMessages = tail (incomingMessages st) }
 
 sendReply :: Client -> State -> Types.Result -> M.Message -> Logger -> IO State
 sendReply c st res msg l = do
