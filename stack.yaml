@@ -42,6 +42,8 @@ packages:
 extra-deps:
 - git: https://github.com/mejgun/haskell-tdlib.git
   commit: 14c9f000abba21ee7213f5fa74f9ea02194c836e
+- git: https://github.com/mejgun/html-entity-decoder.git
+  commit: a2920209077673e5c05c469a7858bbd56d8c99a5
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

@@ -8,6 +8,7 @@ where
 import           NineGag
 import           Types
 import           VK
+import           Decoder                       as D
 
 import qualified Control.Exception             as E
 import qualified Data.ByteString               as B
@@ -29,7 +30,7 @@ getPost s = do
         then do
           res <- get9 reqN
           case res of
-            Right body -> return $ Right $ parseSite reqN body
+            Right body -> return $ Right $ fixCaption $ parseSite reqN body
             Left  e    -> return $ Left $ NetErr e
         else return $ Left UnknownSite
 
@@ -49,6 +50,10 @@ fixLink s =
       ts = if length (T.words t) /= 1 then "fail" else t
   in  T.unpack
         $ if T.isPrefixOf "https://" ts then ts else T.concat ["https://", ts]
+
+fixCaption :: Resp -> Resp
+fixCaption r = r { caption = dec (caption r) }
+  where dec = T.unpack . D.decode . T.pack
 
 changeHost :: H.Request -> H.Request
 changeHost r =

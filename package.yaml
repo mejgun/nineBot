@@ -28,6 +28,7 @@ dependencies:
 - text
 - aeson
 - haskell-tdlib
+- html-entity-decoder
 
 library:
   source-dirs: src
