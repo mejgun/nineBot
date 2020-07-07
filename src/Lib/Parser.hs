@@ -1,5 +1,6 @@
-module Types where
+module Lib.Parser where
 
+import qualified Text.XML.Cursor               as XML
 import qualified Network.HTTP.Conduit          as H
 
 data Err = UnknownSite
@@ -16,3 +17,5 @@ data Resp = Resp
     deriving Show
 
 type Result = Either Err Resp
+
+newtype Handle = Handle { parse::XML.Cursor -> Resp}

@@ -1,17 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module VK
-  ( parseVK
+module Lib.Parser.Impl.VK
+  ( newHandle
   )
 where
 
 import qualified Data.Text                     as T
 import qualified Text.XML.Cursor               as X
 
-import           Types
+import qualified Lib.Parser                    as Parser
 
-parseVK :: X.Cursor -> Resp
-parseVK c =
+newHandle = Parser.Handle { parse = parse }
+
+parse :: X.Cursor -> Resp
+parse c =
   Resp { video = [], photo = getImages c, caption = getTitle c, url = getURL c }
 
 getURL :: X.Cursor -> String
@@ -42,17 +44,7 @@ getImages c =
     X.&// X.attributeIs "class" "thumb_map_img thumb_map_img_as_div"
     X.>=> X.attribute "data-src_big"
 
--- getGIFs :: X.Cursor -> [String]
--- getGIFs c =
---   map (\t -> T.unpack $ T.concat ["https://vk.com", t])
---     $     c
---     X.$// getPostBody
---     X.&// X.attributeIs "class" "medias_thumb"
---     X.>=> X.attribute "href"
-
 getPostBody :: X.Axis
 getPostBody c =
   (X.attributeIs "class" "wi_body" c)
     ++ (X.attributeIs "class" "wi_body wi_no_text" c)
-
-

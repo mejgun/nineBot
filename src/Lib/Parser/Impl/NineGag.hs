@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module NineGag
-  ( parse9gag
+module Lib.Parser.Impl.NineGag
+  ( newHandle
   )
 where
 
@@ -11,14 +11,16 @@ import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as E
 import qualified Text.XML.Cursor               as X
 
-import           Types
+import qualified Lib.Parser                    as Parser
 
-parse9gag :: X.Cursor -> Resp
-parse9gag c = Resp { video   = v
-                   , photo   = if null v then p else []
-                   , caption = getTitle j
-                   , url     = getURL j
-                   }
+newHandle = Parser.Handle { parse = parse }
+
+parse :: X.Cursor -> Resp
+parse c = Resp { video   = v
+               , photo   = if null v then p else []
+               , caption = getTitle j
+               , url     = getURL j
+               }
  where
   j = getJson c
   v = getVideo j

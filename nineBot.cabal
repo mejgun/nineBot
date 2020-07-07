@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: da23698161448cb359c378dcfb0078254f18c29e76de4a289b5025ca874843a3
+-- hash: c45851af84bd93c0171aff53c02e4ad59a5ddef1253a8e02878864fc3bbf8ac8
 
 name:           nineBot
 version:        0.1.0.0
@@ -28,10 +28,12 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Lib.Constants
+      Lib.Logger
+      Lib.Parser
+      Lib.Parser.Impl.NineGag
+      Lib.Parser.Impl.VK
       Logger
-      NineGag
-      Types
-      VK
   other-modules:
       Paths_nineBot
   hs-source-dirs:
