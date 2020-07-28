@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lib.Logger
+module Lib.Logger.Impl.File
   ( newHandle
   )
 where

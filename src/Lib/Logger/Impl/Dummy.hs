@@ -1,4 +1,4 @@
-module Lib.Logger
+module Lib.Logger.Impl.Dummy
   ( newHandle
   )
 where
