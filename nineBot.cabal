@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f5f871f99632aba902f9f752d3a957328b8e800ecb69839029629644c8140542
+-- hash: cf49e5d7a1e69f2727cabb4a652eb987029cb40f54e38443843bbb4c9873fdb9
 
 name:           nineBot
 version:        0.1.0.0
@@ -29,13 +29,15 @@ library
   exposed-modules:
       Lib
       Lib.Constants
+      Lib.Inet
+      Lib.Inet.Impl.Inet
+      Lib.Logger
       Lib.Logger.Impl.Dummy
       Lib.Logger.Impl.File
       Lib.Parser
       Lib.Parser.Impl.Dummy
       Lib.Parser.Impl.NineGag
       Lib.Parser.Impl.VK
-      Logger
   other-modules:
       Paths_nineBot
   hs-source-dirs:

@@ -1,21 +1,18 @@
 module Lib.Parser where
 
-import qualified Text.XML.Cursor               as XML
 import qualified Network.HTTP.Conduit          as H
+import qualified Text.XML.Cursor               as XML
 
-data Err = UnknownSite
-    | NetErr H.HttpException
-    | UrlErr H.HttpException
-    deriving Show
-
-data Resp = Resp
-    { video   :: [String]
-    , photo   :: [String]
+data Resp =
+  Resp
+    { video :: [String]
+    , photo :: [String]
     , caption :: String
-    , url     :: String
+    , url :: String
     }
-    deriving Show
+  deriving (Show)
 
-type Result = Either Err Resp
-
-newtype Handle = Handle { parse::XML.Cursor -> Resp}
+newtype Handle =
+  Handle
+    { parse :: XML.Cursor -> Resp
+    }

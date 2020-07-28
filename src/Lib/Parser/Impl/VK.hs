@@ -10,11 +10,14 @@ import qualified Text.XML.Cursor               as X
 
 import qualified Lib.Parser                    as Parser
 
-newHandle = Parser.Handle { parse = parse }
+newHandle = Parser.Handle { Parser.parse = parse }
 
-parse :: X.Cursor -> Resp
-parse c =
-  Resp { video = [], photo = getImages c, caption = getTitle c, url = getURL c }
+parse :: X.Cursor -> Parser.Resp
+parse c = Parser.Resp { Parser.video   = []
+                      , Parser.photo   = getImages c
+                      , Parser.caption = getTitle c
+                      , Parser.url     = getURL c
+                      }
 
 getURL :: X.Cursor -> String
 getURL c =

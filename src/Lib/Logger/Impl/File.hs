@@ -7,16 +7,14 @@ where
 
 import           Control.Concurrent             ( forkIO )
 import           Control.Concurrent.Chan
-import qualified Lib.Logger                    as Logger
 import qualified Lib.Constants                 as Constants
+import qualified Lib.Logger                    as Logger
 
-type Logger = String -> IO ()
-
-newHandle :: IO Logger.Logger
+newHandle :: IO Logger.Handle
 newHandle = do
   ch <- newChan :: IO (Chan String)
   _  <- forkIO $ mainLoop ch
-  return $ Logger.Handle { logg = writeChan ch }
+  return $ Logger.Handle { Logger.logg = writeChan ch }
 
 mainLoop :: Chan String -> IO ()
 mainLoop ch = do
