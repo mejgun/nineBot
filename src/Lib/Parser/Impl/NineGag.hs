@@ -56,7 +56,7 @@ getJson c = case p of
  where
   p =
     filter (\s -> T.isPrefixOf prefix s && T.isSuffixOf suffix s)
-      $     map (T.strip)
+      $     map T.strip
       $     c
       X.$// X.element "script"
       X.>=> X.attributeIs "type" "text/javascript"
