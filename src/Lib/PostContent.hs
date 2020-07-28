@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lib
+module Lib.PostContent
   ( getPost
+  , Result
+  , Err(..)
+  , Parser.Resp(..)
   )
 where
 

@@ -1,9 +1,12 @@
 module Lib.Logger
   ( Handle(..)
+  , Logger
   )
 where
 
+type Logger = String -> IO ()
+
 newtype Handle =
   Handle
-    { logg :: String -> IO ()
+    { logg :: Logger
     }

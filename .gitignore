@@ -2,5 +2,6 @@
 /build/
 /lib/
 *.txt
+*.json
 /tdlib_*
 *~
