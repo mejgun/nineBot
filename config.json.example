@@ -1,0 +1,7 @@
+{
+    "telegram": {
+        "encryptionKey": "randomkey",
+        "token": "bottoken"
+    },
+    "logFile": "bot_log.txt"
+}

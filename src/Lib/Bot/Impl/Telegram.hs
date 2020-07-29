@@ -53,7 +53,7 @@ startBot :: Logger.Handle -> Inet.Handle -> IO ()
 startBot logHandler inetHandler = do
   cl <- create
   send cl SetLogVerbosityLevel { new_verbosity_level = Just 2 }
-  mainLoop $ emptyState cl inetHandler logHandler
+  mainLoop $ emptyBotState cl inetHandler logHandler
 
 mainLoop :: BotState -> IO ()
 mainLoop botState = do
@@ -126,16 +126,17 @@ getMessageText m = case M.content m of
     _ -> Nothing
   _ -> Nothing
 
-emptyState :: Client -> Inet.Handle -> Logger.Handle -> BotState
-emptyState cl inetHandler logHandler = BotState { currentExtra     = Nothing
-                                                , answeringMessage = Nothing
-                                                , failedMessages   = []
-                                                , incomingMessages = []
-                                                , online           = False
-                                                , client           = cl
-                                                , inetH            = inetHandler
-                                                , logH             = logHandler
-                                                }
+emptyBotState :: Client -> Inet.Handle -> Logger.Handle -> BotState
+emptyBotState tdlibClient inetHandler logHandler = BotState
+  { currentExtra     = Nothing
+  , answeringMessage = Nothing
+  , failedMessages   = []
+  , incomingMessages = []
+  , online           = False
+  , client           = tdlibClient
+  , inetH            = inetHandler
+  , logH             = logHandler
+  }
 
 resendFirstFailedMessage :: BotState -> IO BotState
 resendFirstFailedMessage botState = do
