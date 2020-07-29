@@ -17,4 +17,6 @@ main = do
   logH  <- Logger.Impl.File.newHandle (Config.logFile conf)
   inetH <- Inet.Impl.Internet.newHandle
   botH  <- Bot.Impl.Telegram.newHandle
+    (Config.token (Config.telegram conf))
+    (Config.encryptionKey (Config.telegram conf))
   Bot.start botH logH inetH

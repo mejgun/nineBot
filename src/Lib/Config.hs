@@ -2,6 +2,7 @@
 
 module Lib.Config
   ( Config(..)
+  , Telegram(..)
   , Lib.Config.read
   )
 where

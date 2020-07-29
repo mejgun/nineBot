@@ -1,6 +1,6 @@
 {
     "telegram": {
-        "encryptionKey": "randomkey",
+        "encryptionKey": "randomencryption",
         "token": "bottoken"
     },
     "logFile": "bot_log.txt"

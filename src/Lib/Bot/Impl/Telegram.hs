@@ -34,8 +34,9 @@ import qualified Lib.Logger                    as Logger
 import qualified Lib.PostContent               as PostContent
 import           TDLib
 
-newHandle :: IO Bot.Handle
-newHandle = return $ Bot.Handle { Bot.start = startBot }
+newHandle :: String -> String -> IO Bot.Handle
+newHandle tgToken encryptionKey =
+  return $ Bot.Handle { Bot.start = startBot tgToken encryptionKey }
 
 data BotState =
   BotState
@@ -47,13 +48,15 @@ data BotState =
     , client :: Client
     , inetH :: Inet.Handle
     , logH :: Logger.Handle
+    , tdlibToken :: String
+    , tdlibEncryptionKey :: String
     }
 
-startBot :: Logger.Handle -> Inet.Handle -> IO ()
-startBot logHandler inetHandler = do
+startBot :: String -> String -> Logger.Handle -> Inet.Handle -> IO ()
+startBot tgToken encryptionKey logHandler inetHandler = do
   cl <- create
   send cl SetLogVerbosityLevel { new_verbosity_level = Just 2 }
-  mainLoop $ emptyBotState cl inetHandler logHandler
+  mainLoop $ emptyBotState cl inetHandler logHandler tgToken encryptionKey
 
 mainLoop :: BotState -> IO ()
 mainLoop botState = do
@@ -73,10 +76,12 @@ handleAuthState botState AuthorizationStateWaitTdlibParameters = send
   SetTdlibParameters { parameters = Just defaultTdlibParameters }
 handleAuthState botState (AuthorizationStateWaitEncryptionKey _) = send
   (client botState)
-  CheckDatabaseEncryptionKey { encryption_key = Just "randomencryption" }
-handleAuthState botState AuthorizationStateWaitPhoneNumber = do
-  t <- putStrLn "Enter bot token" >> getLine
-  send (client botState) CheckAuthenticationBotToken { token = Just t }
+  CheckDatabaseEncryptionKey
+    { encryption_key = Just (tdlibEncryptionKey botState)
+    }
+handleAuthState botState AuthorizationStateWaitPhoneNumber = send
+  (client botState)
+  CheckAuthenticationBotToken { token = Just (tdlibToken botState) }
 handleAuthState _ _ = return ()
 
 handleConnState :: ConnectionState -> BotState -> IO BotState
@@ -126,17 +131,20 @@ getMessageText m = case M.content m of
     _ -> Nothing
   _ -> Nothing
 
-emptyBotState :: Client -> Inet.Handle -> Logger.Handle -> BotState
-emptyBotState tdlibClient inetHandler logHandler = BotState
-  { currentExtra     = Nothing
-  , answeringMessage = Nothing
-  , failedMessages   = []
-  , incomingMessages = []
-  , online           = False
-  , client           = tdlibClient
-  , inetH            = inetHandler
-  , logH             = logHandler
-  }
+emptyBotState
+  :: Client -> Inet.Handle -> Logger.Handle -> String -> String -> BotState
+emptyBotState tdlibClient inetHandler logHandler tgToken encryptionKey =
+  BotState { currentExtra       = Nothing
+           , answeringMessage   = Nothing
+           , failedMessages     = []
+           , incomingMessages   = []
+           , online             = False
+           , client             = tdlibClient
+           , inetH              = inetHandler
+           , logH               = logHandler
+           , tdlibToken         = tgToken
+           , tdlibEncryptionKey = encryptionKey
+           }
 
 resendFirstFailedMessage :: BotState -> IO BotState
 resendFirstFailedMessage botState = do
