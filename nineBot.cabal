@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4f87b0652c346166657a0ea2148aeabad12343f73625e61cb093390ae1eb3d29
+-- hash: febeaea6ede33abfb0cd8fb68d23d3c2b3d2466188ca4970759064cb622305b2
 
 name:           nineBot
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       Lib.Bot.Impl.Telegram
       Lib.Config
       Lib.Inet
+      Lib.Inet.Impl.Dummy
       Lib.Inet.Impl.Internet
       Lib.Logger
       Lib.Logger.Impl.Dummy
@@ -49,6 +50,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , haskell-tdlib
+    , hspec
     , html-conduit
     , html-entity-decoder
     , http-conduit
@@ -68,6 +70,7 @@ executable nineBot-exe
     , base >=4.7 && <5
     , bytestring
     , haskell-tdlib
+    , hspec
     , html-conduit
     , html-entity-decoder
     , http-conduit
@@ -89,6 +92,7 @@ test-suite nineBot-test
     , base >=4.7 && <5
     , bytestring
     , haskell-tdlib
+    , hspec
     , html-conduit
     , html-entity-decoder
     , http-conduit

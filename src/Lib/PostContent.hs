@@ -29,13 +29,19 @@ data Err
   | UrlErr H.HttpException
   deriving (Show)
 
+instance Eq Err where
+  UnknownSite == UnknownSite = True
+  NetErr _    == NetErr _    = True
+  UrlErr _    == UrlErr _    = True
+  _           == _           = False
+
 type Result = Either Err Parser.Resp
 
 getPost :: Inet.Handle -> String -> IO Result
 getPost hnd str = do
   let getPostContent = Inet.getPostContent hnd
   r <- parseURL $ fixLink str
-  print r
+  -- print r
   case r of
     Left  e   -> return $ Left $ UrlErr e
     Right req -> do
@@ -43,9 +49,9 @@ getPost hnd str = do
       if isValidHost reqN
         then do
           res <- getPostContent reqN
-          case res of
-            Right body -> return $ Right $ fixCaption $ parseSite reqN body
-            Left  e    -> return $ Left $ NetErr e
+          return $ case res of
+            Right body -> Right $ fixCaption $ parseSite reqN body
+            Left  e    -> Left $ NetErr e
         else return $ Left UnknownSite
 
 parseURL :: String -> IO (Either H.HttpException H.Request)

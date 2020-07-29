@@ -29,6 +29,7 @@ dependencies:
 - aeson
 - haskell-tdlib
 - html-entity-decoder
+- hspec
 
 library:
   source-dirs: src

@@ -9,7 +9,7 @@ data Resp =
     , caption :: String
     , url :: String
     }
-  deriving (Show)
+  deriving (Show, Eq)
 
 newtype Handle =
   Handle
