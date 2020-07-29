@@ -3,7 +3,6 @@ module Lib.Bot.Impl.Telegram
   )
 where
 
-
 import           API.AuthorizationState
 import           API.ConnectionState
 import qualified API.FormattedText             as FT
@@ -28,229 +27,235 @@ import           Data.Maybe                     ( fromMaybe
                                                 , isNothing
                                                 )
 
-
 import           Defaults
-import           TDLib
 import qualified Lib.Bot                       as Bot
-import qualified Lib.Logger as Logger
-import qualified Lib.PostContent as PostContent
+import qualified Lib.Inet                      as Inet
+import qualified Lib.Logger                    as Logger
+import qualified Lib.PostContent               as PostContent
+import           TDLib
 
-newHandle = Bot.Handle { Bot.start = startBot }
+newHandle :: IO Bot.Handle
+newHandle = return $ Bot.Handle { Bot.start = startBot }
 
-data State =
-  State
+data BotState =
+  BotState
     { currentExtra :: Maybe String
     , answeringMessage :: Maybe M.Message
     , failedMessages :: [M.Message]
     , incomingMessages :: [M.Message]
     , online :: Bool
+    , client :: Client
+    , inetH :: Inet.Handle
+    , logH :: Logger.Handle
     }
-  deriving (Show)
 
-startBot logH inetH = do
-  let logger = Logger.logg logH
-  client    <- create
-  send client SetLogVerbosityLevel {new_verbosity_level = Just 2}
-  mainLoop client emptyState logger
+startBot :: Logger.Handle -> Inet.Handle -> IO ()
+startBot logHandler inetHandler = do
+  cl <- create
+  send cl SetLogVerbosityLevel { new_verbosity_level = Just 2 }
+  mainLoop $ emptyState cl inetHandler logHandler
 
-mainLoop :: Client -> State -> Logger.Logger -> IO ()
-mainLoop c st l = do
-  r <- receive c
+mainLoop :: BotState -> IO ()
+mainLoop botState = do
+  r <- receive $ client botState
   case r of
-    Nothing -> mainLoop c st l
-    Just (ResultWithExtra res extra)
-      -- print st
-     -> do
+    Nothing                          -> mainLoop botState
+    Just (ResultWithExtra res extra) -> do
       print res
-      newSt <-
-        case extra of
-          Just xt -> handleExtra xt res st l
-          Nothing -> handleResult res c st l
-      mainLoop c newSt l
+      newSt <- case extra of
+        Just xt -> handleExtra xt res botState
+        Nothing -> handleResult res botState
+      mainLoop newSt
 
-handleAuthState :: Client -> AuthorizationState -> IO ()
-handleAuthState c AuthorizationStateWaitTdlibParameters =
-  send c SetTdlibParameters {parameters = Just defaultTdlibParameters}
-handleAuthState c (AuthorizationStateWaitEncryptionKey _) =
-  send c CheckDatabaseEncryptionKey {encryption_key = Just "randomencryption"}
-handleAuthState c AuthorizationStateWaitPhoneNumber = do
+handleAuthState :: BotState -> AuthorizationState -> IO ()
+handleAuthState botState AuthorizationStateWaitTdlibParameters = send
+  (client botState)
+  SetTdlibParameters { parameters = Just defaultTdlibParameters }
+handleAuthState botState (AuthorizationStateWaitEncryptionKey _) = send
+  (client botState)
+  CheckDatabaseEncryptionKey { encryption_key = Just "randomencryption" }
+handleAuthState botState AuthorizationStateWaitPhoneNumber = do
   t <- putStrLn "Enter bot token" >> getLine
-  send c CheckAuthenticationBotToken {token = Just t}
+  send (client botState) CheckAuthenticationBotToken { token = Just t }
 handleAuthState _ _ = return ()
 
-handleConnState :: Client -> ConnectionState -> State -> IO State
-handleConnState _ ConnectionStateReady st = return $ st {online = True}
-handleConnState _ _ st = return $ st {online = False}
+handleConnState :: ConnectionState -> BotState -> IO BotState
+handleConnState ConnectionStateReady botState =
+  return $ botState { online = True }
+handleConnState _ botState = return $ botState { online = False }
 
-handleExtra :: String -> GeneralResult -> State -> Logger.Logger -> IO State
-handleExtra extra res st l
-  | extra == fromMaybe "" (currentExtra st) = do
+handleExtra :: String -> GeneralResult -> BotState -> IO BotState
+handleExtra extra res botState
+  | extra == fromMaybe "" (currentExtra botState) = do
     case res of
-      Error e -> l $ show e
-      _ -> return ()
-    return st {currentExtra = Nothing}
-  | otherwise = return st
+      Error e -> Logger.logg (logH botState) $ show e
+      _       -> return ()
+    return botState { currentExtra = Nothing }
+  | otherwise = return botState
 
-handleResult :: GeneralResult -> Client -> State -> Logger.Logger -> IO State
-handleResult Update U.UpdateAuthorizationState {U.authorization_state = Just s} c st _ =
-  handleAuthState c s >> return st
-handleResult Update U.UpdateConnectionState {U.state = Just conSt}c st _ =
-  handleConnState c conSt st
-handleResult Update U.UpdateNewMessage {U.message = Just msg} _ st l
-  | M.chat_id msg == M.sender_user_id msg =
-    l (show msg) >> return st {incomingMessages = msg : incomingMessages st}
-  | otherwise = return st
-handleResult Update e@U.UpdateMessageSendFailed {U.message = Just msg} _ st l =
-  l (show e) >> return st {failedMessages = msg : failedMessages st}
-handleResult _ c st l
-  | isNothing (currentExtra st) && not (null (failedMessages st)) && online st =
-    resendFirstFailedMessage c st
-  | isNothing (currentExtra st) && not (null (incomingMessages st)) && online st =
-    answerToFirstReceivedMessage c st l
-  | otherwise = return st
+handleResult :: GeneralResult -> BotState -> IO BotState
+handleResult (Update U.UpdateAuthorizationState { U.authorization_state = Just s }) botState
+  = handleAuthState botState s >> return botState
+handleResult (Update U.UpdateConnectionState { U.state = Just conSt }) botState
+  = handleConnState conSt botState
+handleResult (Update U.UpdateNewMessage { U.message = Just msg }) botState
+  | M.chat_id msg == M.sender_user_id msg
+  = Logger.logg (logH botState) (show msg)
+    >> return botState { incomingMessages = msg : incomingMessages botState }
+  | otherwise
+  = return botState
+handleResult (Update e@U.UpdateMessageSendFailed { U.message = Just msg }) botState
+  = Logger.logg (logH botState) (show e)
+    >> return botState { failedMessages = msg : failedMessages botState }
+handleResult _ botState
+  | isNothing (currentExtra botState)
+    && not (null (failedMessages botState))
+    && online botState
+  = resendFirstFailedMessage botState
+  | isNothing (currentExtra botState)
+    && not (null (incomingMessages botState))
+    && online botState
+  = answerToFirstReceivedMessage botState
+  | otherwise
+  = return botState
 
 getMessageText :: M.Message -> Maybe String
-getMessageText m = 
-  case M.content m of
-    Just MessageText {_text = t} ->
-      case t of
-        Just FT.FormattedText {FT.text = Just txt} -> Just txt
-        _ -> Nothing
+getMessageText m = case M.content m of
+  Just MessageText { _text = t } -> case t of
+    Just FT.FormattedText { FT.text = Just txt } -> Just txt
     _ -> Nothing
+  _ -> Nothing
 
-emptyState :: State
-emptyState =
-  State
-    { currentExtra = Nothing
-    , answeringMessage = Nothing
-    , failedMessages = []
-    , incomingMessages = []
-    , online = False
+emptyState :: Client -> Inet.Handle -> Logger.Handle -> BotState
+emptyState cl inetHandler logHandler = BotState { currentExtra     = Nothing
+                                                , answeringMessage = Nothing
+                                                , failedMessages   = []
+                                                , incomingMessages = []
+                                                , online           = False
+                                                , client           = cl
+                                                , inetH            = inetHandler
+                                                , logH             = logHandler
+                                                }
+
+resendFirstFailedMessage :: BotState -> IO BotState
+resendFirstFailedMessage botState = do
+  let msg = head $ failedMessages botState
+  extra <- sendWExtra
+    (client botState)
+    RM.ResendMessages { RM.chat_id     = M.chat_id msg
+                      , RM.message_ids = Just [fromMaybe 0 (M._id msg)]
+                      }
+  return botState { failedMessages = tail (failedMessages botState)
+                  , currentExtra   = Just extra
+                  }
+
+answerToFirstReceivedMessage :: BotState -> IO BotState
+answerToFirstReceivedMessage botState = do
+  let msg = head $ incomingMessages botState
+  newSt <- if (M.chat_id msg == M.sender_user_id msg) && isJust (M.chat_id msg)
+    then do
+      let lnk = fromMaybe "fail" (getMessageText msg)
+      post <- PostContent.getPost (inetH botState) lnk
+      sendReply botState post msg
+    else return botState
+  return newSt { incomingMessages = tail (incomingMessages botState) }
+
+sendReply :: BotState -> PostContent.Result -> M.Message -> IO BotState
+sendReply botState res msg = do
+  extra <- case res of
+    Left PostContent.UnknownSite ->
+      sendWExtra (client botState) $ sendTextMsg chat replyTo "unknown site"
+    Left (PostContent.NetErr e) -> do
+      Logger.logg (logH botState) $ show e
+      sendWExtra (client botState)
+        $ sendTextMsg chat replyTo "some error. try again later"
+    Left (PostContent.UrlErr e) -> do
+      Logger.logg (logH botState) $ show e
+      sendWExtra (client botState) $ sendTextMsg chat replyTo "broken link"
+    Right resp ->
+      if null (PostContent.photo resp) && null (PostContent.video resp)
+        then sendWExtra (client botState)
+          $ sendTextMsg chat replyTo "no media found"
+        else sendWExtra (client botState) $ sendAlbumMsgs chat replyTo resp
+  return $ botState { currentExtra = Just extra }
+ where
+  chat    = M.chat_id msg
+  replyTo = M._id msg
+
+sendAlbumMsgs
+  :: Maybe Int -> Maybe Int -> PostContent.Resp -> SMA.SendMessageAlbum
+sendAlbumMsgs cID rID resp = SMA.SendMessageAlbum
+  { SMA.chat_id                = cID
+  , SMA.reply_to_message_id    = rID
+  , SMA.options                = Nothing
+  , SMA.input_message_contents = Just reduceAddLink
+  }
+ where
+  reduceAddLink :: [IMC.InputMessageContent]
+  reduceAddLink =
+    let c = take 10 content
+    in  if null c
+          then c
+          else
+            let (h : t) = c
+                newH    = addLinkNCaption h
+            in  newH : t
+  addLinkNCaption :: IMC.InputMessageContent -> IMC.InputMessageContent
+  addLinkNCaption imc = imc
+    { IMC.caption = Just FT.FormattedText
+      { FT.text     = Just ("link " ++ take 200 (PostContent.caption resp))
+      , FT.entities = Just
+        [ TE.TextEntity
+            { TE._type   =
+              Just
+                (TET.TextEntityTypeTextUrl
+                  { TET.url = Just (PostContent.url resp)
+                  }
+                )
+            , TE._length = Just 4
+            , TE.offset  = Just 0
+            }
+        ]
+      }
     }
-
-resendFirstFailedMessage :: Client -> State -> IO State
-resendFirstFailedMessage c st = do
-  let msg = head $ failedMessages st
-  extra <-
-    sendWExtra
-      c
-      RM.ResendMessages
-        { RM.chat_id = M.chat_id msg
-        , RM.message_ids = Just [fromMaybe 0 (M._id msg)]
-        }
-  return
-    st {failedMessages = tail (failedMessages st), currentExtra = Just extra}
-
-answerToFirstReceivedMessage :: Client -> State -> Logger.Logger -> IO State
-answerToFirstReceivedMessage c st l = do
-  let msg = head $ incomingMessages st
-  newSt <-
-    if (M.chat_id msg == M.sender_user_id msg) && isJust (M.chat_id msg)
-      then do
-        let lnk = fromMaybe "fail" (getMessageText msg)
-        post <- getPost lnk
-        sendReply c st post msg l
-      else return st
-  return newSt {incomingMessages = tail (incomingMessages st)}
-
-sendReply :: Client -> State -> PostContent.Result -> M.Message -> Logger.Logger -> IO State
-sendReply c st res msg l = do
-  extra <-
-    case res of
-      Left PostContent.UnknownSite -> sendWExtra c $ sendTextMsg chat replyTo "unknown site"
-      Left (PostContent.NetErr e) -> do
-        l $ show e
-        sendWExtra c $ sendTextMsg chat replyTo "some error. try again later"
-      Left (PostContent.UrlErr e) -> do
-        l $ show e
-        sendWExtra c $ sendTextMsg chat replyTo "broken link"
-      Right resp ->
-        if null (PostContent.photo resp) && null (PostContent.video resp)
-          then sendWExtra c $ sendTextMsg chat replyTo "no media found"
-          else sendWExtra c $ sendAlbumMsgs chat replyTo resp
-  return $ st {currentExtra = Just extra}
-  where
-    chat = M.chat_id msg
-    replyTo = M._id msg
-
-sendAlbumMsgs :: Maybe Int -> Maybe Int -> PostContent.Resp -> SMA.SendMessageAlbum
-sendAlbumMsgs cID rID resp = 
-  SMA.SendMessageAlbum
-    { SMA.chat_id = cID
-    , SMA.reply_to_message_id = rID
-    , SMA.options = Nothing
-    , SMA.input_message_contents = Just reduceAddLink
+  content :: [IMC.InputMessageContent]
+  content =
+    (map v (PostContent.video resp)) ++ (map p (PostContent.photo resp))
+  v :: String -> IMC.InputMessageContent
+  v s = IMC.InputMessageVideo
+    { IMC.ttl                    = Nothing
+    , IMC.caption                = Nothing
+    , IMC.supports_streaming     = Nothing
+    , IMC.height                 = Nothing
+    , IMC.width                  = Nothing
+    , IMC.duration               = Nothing
+    , IMC.added_sticker_file_ids = Nothing
+    , IMC.thumbnail              = Nothing
+    , IMC.video                  = Just IF.InputFileRemote { IF._id = Just s }
     }
-  where
-    reduceAddLink :: [IMC.InputMessageContent]
-    reduceAddLink =
-      let c = take 10 content
-       in if null c
-            then c
-            else let (h:t) = c
-                     newH = addLinkNCaption h
-                  in newH : t
-    addLinkNCaption :: IMC.InputMessageContent -> IMC.InputMessageContent
-    addLinkNCaption imc =
-      imc
-        { IMC.caption =
-            Just
-              FT.FormattedText
-                { FT.text = Just ("link " ++ take 200 (PostContent.caption resp))
-                , FT.entities =
-                    Just
-                      [ TE.TextEntity
-                          { TE._type =
-                              Just
-                                (TET.TextEntityTypeTextUrl
-                                   {TET.url = Just (PostContent.url resp)})
-                          , TE._length = Just 4
-                          , TE.offset = Just 0
-                          }
-                      ]
-                }
-        }
-    content :: [IMC.InputMessageContent]
-    content = (map v (PostContent.video resp)) ++ (map p (PostContent.photo resp))
-    v :: String -> IMC.InputMessageContent
-    v s =
-      IMC.InputMessageVideo
-        { IMC.ttl = Nothing
-        , IMC.caption = Nothing
-        , IMC.supports_streaming = Nothing
-        , IMC.height = Nothing
-        , IMC.width = Nothing
-        , IMC.duration = Nothing
-        , IMC.added_sticker_file_ids = Nothing
-        , IMC.thumbnail = Nothing
-        , IMC.video = Just IF.InputFileRemote {IF._id = Just s}
-        }
-    p :: String -> IMC.InputMessageContent
-    p s =
-      IMC.InputMessagePhoto
-        { IMC.ttl = Nothing
-        , IMC.caption = Nothing
-        , IMC.height = Nothing
-        , IMC.width = Nothing
-        , IMC.added_sticker_file_ids = Nothing
-        , IMC.thumbnail = Nothing
-        , IMC.photo = Just IF.InputFileRemote {IF._id = Just s}
-        }
+  p :: String -> IMC.InputMessageContent
+  p s = IMC.InputMessagePhoto
+    { IMC.ttl                    = Nothing
+    , IMC.caption                = Nothing
+    , IMC.height                 = Nothing
+    , IMC.width                  = Nothing
+    , IMC.added_sticker_file_ids = Nothing
+    , IMC.thumbnail              = Nothing
+    , IMC.photo                  = Just IF.InputFileRemote { IF._id = Just s }
+    }
 
 sendTextMsg :: Maybe Int -> Maybe Int -> String -> SM.SendMessage
-sendTextMsg cID rID msg =
-  SM.SendMessage
-    { SM.chat_id = cID
-    , SM.reply_to_message_id = rID
-    , SM.reply_markup = Nothing
-    , SM.options = Nothing
-    , SM.input_message_content =
-        Just
-          IMC.InputMessageText
-            { IMC.clear_draft = Nothing
-            , IMC.disable_web_page_preview = Nothing
-            , IMC.text =
-                Just
-                  FT.FormattedText {FT.text = Just msg, FT.entities = Nothing}
-            }
-    }
+sendTextMsg cID rID msg = SM.SendMessage
+  { SM.chat_id               = cID
+  , SM.reply_to_message_id   = rID
+  , SM.reply_markup          = Nothing
+  , SM.options               = Nothing
+  , SM.input_message_content = Just IMC.InputMessageText
+                                 { IMC.clear_draft = Nothing
+                                 , IMC.disable_web_page_preview = Nothing
+                                 , IMC.text = Just FT.FormattedText
+                                                { FT.text     = Just msg
+                                                , FT.entities = Nothing
+                                                }
+                                 }
+  }

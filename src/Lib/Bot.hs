@@ -3,11 +3,10 @@ module Lib.Bot
   )
 where
 
-import qualified Lib.Logger                    as Logger
 import qualified Lib.Inet                      as Inet
+import qualified Lib.Logger                    as Logger
 
 newtype Handle =
   Handle
-    { start :: Logger.Handle->Inet.Handle->IO()
+    { start :: Logger.Handle -> Inet.Handle -> IO ()
     }
-

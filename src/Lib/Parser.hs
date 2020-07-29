@@ -1,6 +1,5 @@
 module Lib.Parser where
 
-import qualified Network.HTTP.Conduit          as H
 import qualified Text.XML.Cursor               as XML
 
 data Resp =

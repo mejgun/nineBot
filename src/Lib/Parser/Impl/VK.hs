@@ -10,6 +10,7 @@ import qualified Text.XML.Cursor               as X
 
 import qualified Lib.Parser                    as Parser
 
+newHandle :: Parser.Handle
 newHandle = Parser.Handle { Parser.parse = parse }
 
 parse :: X.Cursor -> Parser.Resp

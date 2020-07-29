@@ -9,7 +9,8 @@ import qualified Network.HTTP.Conduit          as H
 
 import qualified Lib.Inet                      as Inet
 
-newHandle = Inet.Handle { Inet.getPostContent = get }
+newHandle :: IO Inet.Handle
+newHandle = return $ Inet.Handle { Inet.getPostContent = get }
 
 get :: H.Request -> IO (Either H.HttpException BL.ByteString)
 get request = do

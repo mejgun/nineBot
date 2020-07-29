@@ -5,10 +5,10 @@ module Main
   )
 where
 
-import qualified Lib.Logger.Impl.File          as Logger.Impl.File
-import qualified Lib.Inet.Impl.Internet        as Inet.Impl.Internet
-import qualified Lib.Bot.Impl.Telegram         as Bot.Impl.Telegram
 import qualified Lib.Bot                       as Bot
+import qualified Lib.Bot.Impl.Telegram         as Bot.Impl.Telegram
+import qualified Lib.Inet.Impl.Internet        as Inet.Impl.Internet
+import qualified Lib.Logger.Impl.File          as Logger.Impl.File
 
 main :: IO ()
 main = do
@@ -16,5 +16,3 @@ main = do
   inetH <- Inet.Impl.Internet.newHandle
   botH  <- Bot.Impl.Telegram.newHandle
   Bot.start botH logH inetH
-
-
