@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: febeaea6ede33abfb0cd8fb68d23d3c2b3d2466188ca4970759064cb622305b2
+-- hash: 015e8c13a77256940dce9f9c04cf298b7ed2765812520ada3b5a4071208a3dff
 
 name:           nineBot
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Lib.Bot
       Lib.Bot.Impl.Telegram
+      Lib.Bot.Impl.VK
       Lib.Config
       Lib.Inet
       Lib.Inet.Impl.Dummy
