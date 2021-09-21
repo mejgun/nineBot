@@ -19,12 +19,15 @@ import qualified API.InputFile                 as IF
 import qualified API.InputMessageContent       as IMC
 import qualified API.Message                   as M
 import           API.MessageContent
+import qualified API.MessageSender             as MS
 import qualified API.TextEntity                as TE
 import qualified API.TextEntityType            as TET
 import qualified API.Update                    as U
+import qualified API.Ok
 import           Data.Maybe                     ( fromMaybe
                                                 , isJust
                                                 , isNothing
+                                                , fromJust
                                                 )
 
 import           Defaults
@@ -62,7 +65,10 @@ mainLoop :: BotState -> IO ()
 mainLoop botState = do
   r <- receive $ client botState
   case r of
-    Nothing                          -> mainLoop botState
+    -- Nothing                          -> mainLoop botState
+    Nothing -> if not $ null $ incomingMessages botState
+      then handleResult (Ok API.Ok.Ok) botState >>= mainLoop
+      else mainLoop botState
     Just (ResultWithExtra res extra) -> do
       print res
       newSt <- case extra of
@@ -104,7 +110,10 @@ handleResult (Update U.UpdateAuthorizationState { U.authorization_state = Just s
 handleResult (Update U.UpdateConnectionState { U.state = Just conSt }) botState
   = handleConnState conSt botState
 handleResult (Update U.UpdateNewMessage { U.message = Just msg }) botState
-  | M.chat_id msg == M.sender_user_id msg
+  | isJust (M.sender msg)
+    && isJust (M.chat_id msg)
+    && M.chat_id msg
+    == MS.user_id (fromJust (M.sender msg))
   = Logger.logg (logH botState) (show msg)
     >> return botState { incomingMessages = msg : incomingMessages botState }
   | otherwise
@@ -161,12 +170,16 @@ resendFirstFailedMessage botState = do
 answerToFirstReceivedMessage :: BotState -> IO BotState
 answerToFirstReceivedMessage botState = do
   let msg = head $ incomingMessages botState
-  newSt <- if (M.chat_id msg == M.sender_user_id msg) && isJust (M.chat_id msg)
-    then do
-      let lnk = fromMaybe "fail" (getMessageText msg)
-      post <- PostContent.getPost (inetH botState) lnk
-      sendReply botState post msg
-    else return botState
+  newSt <-
+    if isJust (M.sender msg)
+         && isJust (M.chat_id msg)
+         && M.chat_id msg
+         == MS.user_id (fromJust (M.sender msg))
+      then do
+        let lnk = fromMaybe "fail" (getMessageText msg)
+        post <- PostContent.getPost (inetH botState) lnk
+        sendReply botState post msg
+      else return botState
   return newSt { incomingMessages = tail (incomingMessages botState) }
 
 sendReply :: BotState -> PostContent.Result -> M.Message -> IO BotState
@@ -198,6 +211,7 @@ sendAlbumMsgs cID rID resp = SMA.SendMessageAlbum
   , SMA.reply_to_message_id    = rID
   , SMA.options                = Nothing
   , SMA.input_message_contents = Just reduceAddLink
+  , SMA.message_thread_id      = Nothing
   }
  where
   reduceAddLink :: [IMC.InputMessageContent]
@@ -259,6 +273,7 @@ sendTextMsg cID rID msg = SM.SendMessage
   , SM.reply_to_message_id   = rID
   , SM.reply_markup          = Nothing
   , SM.options               = Nothing
+  , SM.message_thread_id     = Nothing
   , SM.input_message_content = Just IMC.InputMessageText
                                  { IMC.clear_draft = Nothing
                                  , IMC.disable_web_page_preview = Nothing

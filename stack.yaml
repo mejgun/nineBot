@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-16.10
+resolver: lts-18.10
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,7 +41,7 @@ packages:
 #
 extra-deps:
 - git: https://github.com/mejgun/haskell-tdlib.git
-  commit: 14c9f000abba21ee7213f5fa74f9ea02194c836e
+  commit: 1ae2be461d3ff5d0eeeadf5a254d97eec66cd039
 - git: https://github.com/mejgun/html-entity-decoder.git
   commit: a2920209077673e5c05c469a7858bbd56d8c99a5
 

@@ -3,32 +3,32 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-snapshots:
-- completed:
-    sha256: 469d781ab6d2a4eceed6b31b6e4ec842dcd3cd1d11577972e86902603dce24df
-    size: 532383
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/10.yaml
-  original: lts-16.10
 packages:
 - completed:
     name: haskell-tdlib
-    version: 0.1.0.0
+    version: 0.1.1.0
     git: https://github.com/mejgun/haskell-tdlib.git
     pantry-tree:
-      sha256: 2085877d52d3816bac477db29d60965adb29e04f8bc0d937c4336e6e778e9cb9
-      size: 199133
-    commit: 14c9f000abba21ee7213f5fa74f9ea02194c836e
+      size: 220692
+      sha256: f0bc5d20a8455acfd37580ebd14a6320adb9cfc7c2fc812645a554d7c7ef07f1
+    commit: 1ae2be461d3ff5d0eeeadf5a254d97eec66cd039
   original:
     git: https://github.com/mejgun/haskell-tdlib.git
-    commit: 14c9f000abba21ee7213f5fa74f9ea02194c836e
+    commit: 1ae2be461d3ff5d0eeeadf5a254d97eec66cd039
 - completed:
     name: html-entity-decoder
     version: 0.1.0.0
     git: https://github.com/mejgun/html-entity-decoder.git
     pantry-tree:
-      sha256: 3c7a6c34f626133a38dad843e5e9ffe0c040e04889ee9662c3168d0eec010255
       size: 749
+      sha256: 3c7a6c34f626133a38dad843e5e9ffe0c040e04889ee9662c3168d0eec010255
     commit: a2920209077673e5c05c469a7858bbd56d8c99a5
   original:
     git: https://github.com/mejgun/html-entity-decoder.git
     commit: a2920209077673e5c05c469a7858bbd56d8c99a5
+snapshots:
+- completed:
+    size: 587546
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/10.yaml
+    sha256: 88b4f81e162ba3adc230a9fcccc4d19ac116377656bab56c7382ca88598b257a
+  original: lts-18.10

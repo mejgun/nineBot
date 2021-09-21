@@ -11,4 +11,4 @@ newHandle :: String -> IO Bot.Handle
 newHandle vkToken = return $ Bot.Handle { Bot.start = startBot vkToken }
 
 startBot :: String -> Logger.Handle -> Inet.Handle -> IO ()
-startBot vkToken logHandler inetHandler = undefined
+startBot _vkToken _logHandler _inetHandler = undefined

@@ -11,7 +11,6 @@ import qualified Lib.Bot.Impl.Telegram         as Bot.Impl.Telegram
 import qualified Lib.Config                    as Config
 import qualified Lib.Inet.Impl.Internet        as Inet.Impl.Internet
 import qualified Lib.Logger.Impl.File          as Logger.Impl.File
-import qualified Lib.Bot.Impl.VK               as Bot.Impl.VK
 
 main :: IO ()
 main = do

@@ -1,13 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 015e8c13a77256940dce9f9c04cf298b7ed2765812520ada3b5a4071208a3dff
+-- hash: 15de50b94b67b36e964b1254cc4e48be1031a00e941c17c45464ef86353883a5
 
 name:           nineBot
-version:        0.1.0.0
+version:        0.1.1.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/nineBot#readme>
 homepage:       https://github.com/githubuser/nineBot#readme
 bug-reports:    https://github.com/githubuser/nineBot/issues
