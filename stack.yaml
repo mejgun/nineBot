@@ -41,7 +41,7 @@ packages:
 #
 extra-deps:
 - git: https://github.com/mejgun/haskell-tdlib.git
-  commit: 1ae2be461d3ff5d0eeeadf5a254d97eec66cd039
+  commit: 7cade80fe7286ec49cf31dfb5c3a13ebb0f459e2
 - git: https://github.com/mejgun/html-entity-decoder.git
   commit: a2920209077673e5c05c469a7858bbd56d8c99a5
 
